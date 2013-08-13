@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <project name="HQ-BETA.MCSTATE.COM" basedir="../" default="default">
+    <property name="builddir" value="${ws}/build" />
+    
+    <!-- Load project settings from external file  -->
+    <property file="${builddir}/config/hosts/${hostname}.properties" />
+
+
+    <!-- Default empty target -->
+    <target name="default" description="Basic project information">
+        <tstamp />
+        <echo message="Hello, welcome to the build script for ${phing.project.name}!" />
+        <echo message="Current environment is: ${project.env}" />
+        <echo message="Current hostname is: ${hostname}" />
+    </target>
+
+    <target name="clean">
+        <echo msg="Clean..." />
+        <delete dir="${builddir}" />
+    </target>
+
+    <target name="prepare">
+        <echo msg="Prepare..." />
+        <mkdir dir="${builddir}" />
+        <mkdir dir="${builddir}/logs" />
+        <mkdir dir="${builddir}/logs/coverage" />
+        <mkdir dir="${builddir}/docs" />
+        <mkdir dir="${builddir}/app" />
+    </target>
+
+    <!-- Target app -->
+    <target name="app">
+        <echo msg="We do nothing here yet!" />
+    </target>
+
+    <!-- PHP API Documentation -->
+    <target name="phpdoc">
+        <echo msg="PHP Documentor..." />
+        <phpdoc title="API Documentation"
+                destdir="${builddir}/docs"
+                sourcecode="yes"
+                defaultpackagename="MHTest"
+                output="HTML:Smarty:PHP">
+            <fileset dir="./app">
+                <include name="**/*.php" />
+            </fileset>
+        </phpdoc>
+    </target>
+
+    <!-- PHP copy/paste analysis -->
+    <target name="phpcpd">
+        <echo msg="PHP Copy/Paste..." />
+        <exec command="phpcpd --log-pmd=${builddir}/logs/pmd.xml source" escape="false" />
+    </target>
+
+    <!-- PHP dependency checker -->
+    <target name="pdepend">
+        <echo msg="PHP Depend..." />
+        <exec command="pdepend --jdepend-xml=${builddir}/logs/jdepend.xml ${ws}/source" escape="false" />
+    </target>
+
+    <!-- PHP CodeSniffer -->
+    <target name="phpcs">
+        <echo msg="PHP CodeSniffer..." />
+        <exec command="phpcs --standard=ZEND --report=checkstyle ${ws}/source > ${builddir}/logs/checkstyle.xml" escape="false" />
+    </target>
+
+    <!-- Unit Tests & coverage analysis -->
+    <target name="phpunit">
+        <echo msg="PHP Unit..." />
+        <exec command="phpunit --log-junit ${builddir}/logs/phpunit.xml --log-pmd ${builddir}/logs/phpunit.pmd.xml --coverage-clover ${builddir}/logs/coverage/clover.xml --coverage-html ${builddir}/logs/coverage/ ${ws}/source/tests"/>
+    </target>
+    
+    <target name="deploy" description="Deploys the current working copy to a remote host using FileSync">
+         <!-- Default hostname is empty, must be passed from the command line -->
+        <property name="hostname" value="false" override="true" />
+
+         <!-- Set default LISTONLY to false -->
+        <property name="listonly" value="false" override="true" />
+        <!-- <property name="listonly" value="true" /> -->
+        <property name="hostfile" value="${builddir}/config/hosts/${hostname}.properties" />
+
+         <!-- Check for specific host/env file, if not fail! -->
+        <available file="${hostfile}" property="hostfilefound" value="true"/>
+
+        <fail unless="hostfilefound" message="Missing host configuration file (${hostfile})!" />
+
+        <!-- Host file exists so loading... -->
+        <property file="${hostfile}" />
+
+        <!-- Get timestamp -->
+        <tstamp />
+
+         <!-- Set default VERBOSE flag to TRUE -->
+        <if>
+            <not>
+                <isset property="sync.verbose" />
+            </not>
+            <then>
+                <property name="sync.verbose" value="true" override="true" />
+                <echo message="The value of sync.verbose has been set to true" />
+            </then>
+        </if>
+
+         <!-- Set default DELETE flag to FALSE -->
+        <if>
+            <not>
+                <isset property="sync.delete" />
+            </not>
+            <then>
+                <property name="sync.delete" value="false" override="true" />
+                <echo message="The value of sync.delete has been set to false" />
+            </then>
+        </if>
+
+         <!-- Get auth info, password will be always required -->
+        
+         <!-- Perform Sync -->
+         <!-- See: http://fedecarg.com/wiki/filesynctask -->
+        <taskdef name="sync" classname="phing.tasks.ext.FileSyncTask" />
+        <sync
+          sourcedir='${sync.source.projectdir}'
+          destinationdir="${sync.destination.fullpath}"
+          listonly="${listonly}"
+          delete="${sync.delete}"
+          verbose="${sync.verbose}" />
+    </target>
+    
+    <!-- update permissions -->
+    <target name="change_group" description="Change group attribute to mcstate group">
+            <!-- <exec command="chmod -R 0774 ${ws}/www/" passthru="true" escape="false" dir="${ws}/www/" /> -->
+            <exec command="chgrp -R mcstate ${ws}/www" passthru="true" dir="${ws}/www/" />
+            <!-- <exec command="chmod -R ug+rw ${ws}/www/" passthru="true" escape="false" dir="${ws}/www/" /> -->
+    </target>
+    
+    <!-- update permissions -->
+    <target name="permissions_off" description="Reset File Permissions">
+            <exec command="chmod -R 0664 ${ws}/www/" passthru="true" escape="false" dir="${ws}/www/" />
+            <!-- <exec command="chgrp -R mcstate ${ws}/www" passthru="true" dir="${ws}/www/" />
+            <exec command="chmod -R ug+rw ${ws}/www/" passthru="true" escape="false" dir="${ws}/www/" /> -->
+    </target>
+    
+    <target name="copy_env_files" description="Copy Environment Specific Files">
+        <copy file="${ws}/www/.htaccess.${project.env}" tofile="${ws}/www/.htaccess" overwrite="true"/>
+    </target>
+</project>

@@ -1,0 +1,27 @@
+/* From master.css */
+.redactor {
+	color: #010101;
+	font: normal normal normal 14px/normal arial, helvetica, sans-serif;
+	line-height: 1.6;
+	margin: 0px 0px 20px;
+}
+/* From irhp.css */
+.redactor ul {
+	padding-left:20px;
+	list-style:disc !important;
+}
+.redactor ul li  {
+	margin-left: 1em;
+	list-style:disc !important;
+	font:14px  arial, helvetica, sans-serif;
+	color:#010101;
+	line-height:1.6;
+	clear:both;
+/*	width:520px;*/
+	margin:0 0 10px 0;
+}
+
+.redactor h1 {
+	font-size: 1.5em;
+	margin-bottom: 0.75em;
+}
